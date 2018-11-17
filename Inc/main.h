@@ -55,6 +55,8 @@
 #define Skywriter_TRFR_Pin GPIO_PIN_1
 #define Skywriter_TRFR_GPIO_Port GPIOB
 #define Skywriter_TRFR_EXTI_IRQn EXTI1_IRQn
+#define DIAG_OUT_Pin GPIO_PIN_8
+#define DIAG_OUT_GPIO_Port GPIOA
 #define LED_Pin GPIO_PIN_3
 #define LED_GPIO_Port GPIOB
 
@@ -66,8 +68,19 @@
 /* #define USE_FULL_ASSERT    1U */
 
 /* USER CODE BEGIN Private defines */
-#define I2C_BUF_SIZE 64
-#define SER_BUF_SIZE 128
+#define SKYWRITER_I2C_ADR 0x42
+#define BUF_CNT  4
+#define BUF_SIZE 256
+#define I2C_HEADER_SIZE 4
+#define UART_HEADER_SIZE 2
+typedef enum
+{
+    A0 = 0,
+    VREF,
+    TEMPERATURE,
+    VBAT,
+    ANALOG_IN_CNT
+} ADC_CH;
 
 /* USER CODE END Private defines */
 
