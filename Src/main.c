@@ -48,8 +48,6 @@
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
 
-DAC_HandleTypeDef hdac1;
-
 I2C_HandleTypeDef hi2c1;
 DMA_HandleTypeDef hdma_i2c1_rx;
 DMA_HandleTypeDef hdma_i2c1_tx;
@@ -156,7 +154,6 @@ static void MX_DMA_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_RTC_Init(void);
 static void MX_ADC1_Init(void);
-static void MX_DAC1_Init(void);
 static void MX_USART1_UART_Init(void);
 
 /* USER CODE BEGIN PFP */
@@ -247,107 +244,6 @@ void handle_uart_rx(UART_HandleTypeDef *uart)
     return;
 }
 
-/*
- * ADC(inkl. Temperature)/DAC Stuff
- */
-static int16_t adc_read_value(ADC_CH adc_ch)
-{
-    int32_t raw_value = -1;
-    ADC_ChannelConfTypeDef sConfig;
-    sConfig.Channel = analog_in_map[adc_ch];
-    sConfig.Rank = ADC_REGULAR_RANK_1;
-    sConfig.SamplingTime = ADC_SAMPLETIME_640CYCLES_5;
-    sConfig.SingleDiff = ADC_SINGLE_ENDED;
-    sConfig.OffsetNumber = ADC_OFFSET_NONE;
-    sConfig.Offset = 0;
-
-    if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-    {
-        printf("Confiuration failed"NL);
-        return raw_value;
-    }
-
-    if (HAL_ADC_Start(&hadc1) != HAL_OK)
-    {
-      /* Start Conversation Error */
-      printf("Start conversion error"NL);
-      return raw_value;
-    }
-
-    /*##-4- Wait for the end of conversion #####################################*/
-    /*  For simplicity reasons, this example is just waiting till the end of the
-        conversion, but application may perform other tasks while conversion
-        operation is ongoing. */
-    if (HAL_ADC_PollForConversion(&hadc1, 10) != HAL_OK)
-    {
-      /* End Of Conversion flag not set on time */
-        printf("End Of Conversion error"NL);
-        return raw_value;
-    }
-    else
-    {
-        raw_value = HAL_ADC_GetValue(&hadc1);
-    }
-    HAL_ADC_Stop(&hadc1);
-
-    return raw_value;
-}
-
-
-float read_temperature()
-{
-    float temp=-300.0;
-    uint32_t raw_value = adc_read_value(TEMPERATURE);
-
-    if (raw_value >= 0)
-    {
-        int32_t cal1 = *TS_CAL1;
-        int32_t cal2 = *TS_CAL2;
-        float delta_value = cal2-cal1;
-        float ref_v_ratio = VDDA_mV/CALIB_VOLTAGE_mV;
-        float dif_val_corr;
-        /* ADC conversion completed */
-        /*##-5- Get the converted value of regular channel  ########################*/
-        dif_val_corr = ref_v_ratio*raw_value-cal1;
-        //printf("cal1/cal2/read = %d/%d/%d"NL, cal1, cal2, raw_value);
-        temp = (TS_T2_C-TS_T1_C)*dif_val_corr/delta_value+TS_T1_C;
-    }
-    return temp;
-}
-
-float read_voltage_mV(ADC_CH ADC_IN)
-{
-    float voltage_mV = -1;
-    uint32_t raw_value = adc_read_value(ADC_IN);
-
-    if (raw_value >= 0)
-    {
-        uint8_t res_bit = 12-2*(hadc1.Init.Resolution>>ADC_CFGR_RES_Pos);
-        voltage_mV = raw_value;
-        voltage_mV *= VDDA_mV;
-        voltage_mV/= (1<<res_bit);
-    }
-    return voltage_mV;
-}
-
-int16_t write_value(uint16_t value)
-{
-    /*##-3- Set DAC Channel1 DHR register ######################################*/
-    if (HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, value) != HAL_OK)
-    {
-        /* Setting value Error */
-        return -1;
-    }
-
-    /*##-4- Enable DAC Channel1 ################################################*/
-    if (HAL_DAC_Start(&hdac1, DAC_CHANNEL_1) != HAL_OK)
-    {
-        /* Start Error */
-        return -1;
-    }
-    return value;
-}
-
 /* USER CODE END 0 */
 
 /**
@@ -386,7 +282,6 @@ int main(void)
   MX_I2C1_Init();
   MX_RTC_Init();
   MX_ADC1_Init();
-  MX_DAC1_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
     i2c_buf[0] = UART_HEADER[0];
@@ -433,7 +328,6 @@ int main(void)
         }
         else if (i2c_state == PAYLOAD_RECEIVED)
         {
-            i2c_buf[0] =
             _write(NULL, i2c_buf, i2c_buf[UART_HEADER_SIZE]+2);
             /*
             printf("Received I2C data (%d)"NL, timeout);
@@ -599,41 +493,13 @@ static void MX_ADC1_Init(void)
 
     /**Configure Regular Channel 
     */
-  sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
+  sConfig.Channel = ADC_CHANNEL_VREFINT;
   sConfig.Rank = ADC_REGULAR_RANK_1;
   sConfig.SamplingTime = ADC_SAMPLETIME_640CYCLES_5;
   sConfig.SingleDiff = ADC_SINGLE_ENDED;
   sConfig.OffsetNumber = ADC_OFFSET_NONE;
   sConfig.Offset = 0;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-}
-
-/* DAC1 init function */
-static void MX_DAC1_Init(void)
-{
-
-  DAC_ChannelConfTypeDef sConfig;
-
-    /**DAC Initialization 
-    */
-  hdac1.Instance = DAC1;
-  if (HAL_DAC_Init(&hdac1) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-    /**DAC channel OUT1 config 
-    */
-  sConfig.DAC_SampleAndHold = DAC_SAMPLEANDHOLD_DISABLE;
-  sConfig.DAC_Trigger = DAC_TRIGGER_NONE;
-  sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
-  sConfig.DAC_ConnectOnChipPeripheral = DAC_CHIPCONNECT_DISABLE;
-  sConfig.DAC_UserTrimming = DAC_TRIMMING_FACTORY;
-  if (HAL_DAC_ConfigChannel(&hdac1, &sConfig, DAC_CHANNEL_1) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
@@ -800,12 +666,12 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(DIAG_OUT_GPIO_Port, DIAG_OUT_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : PA1 PA2 PA3 PA5 
-                           PA6 PA7 PA11 PA12 
-                           PA15 */
-  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_5 
-                          |GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_11|GPIO_PIN_12 
-                          |GPIO_PIN_15;
+  /*Configure GPIO pins : PA0 PA1 PA2 PA3 
+                           PA4 PA5 PA6 PA7 
+                           PA11 PA12 PA15 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3 
+                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7 
+                          |GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_15;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);

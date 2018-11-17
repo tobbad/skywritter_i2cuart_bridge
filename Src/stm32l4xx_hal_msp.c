@@ -88,7 +88,6 @@ void HAL_MspInit(void)
 void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
 {
 
-  GPIO_InitTypeDef GPIO_InitStruct;
   if(hadc->Instance==ADC1)
   {
   /* USER CODE BEGIN ADC1_MspInit 0 */
@@ -96,15 +95,6 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
   /* USER CODE END ADC1_MspInit 0 */
     /* Peripheral clock enable */
     __HAL_RCC_ADC_CLK_ENABLE();
-  
-    /**ADC1 GPIO Configuration    
-    PA0     ------> ADC1_IN5 
-    */
-    GPIO_InitStruct.Pin = GPIO_PIN_0;
-    GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
     /* ADC1 interrupt Init */
     HAL_NVIC_SetPriority(ADC1_IRQn, 0, 0);
     HAL_NVIC_EnableIRQ(ADC1_IRQn);
@@ -125,67 +115,12 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* hadc)
   /* USER CODE END ADC1_MspDeInit 0 */
     /* Peripheral clock disable */
     __HAL_RCC_ADC_CLK_DISABLE();
-  
-    /**ADC1 GPIO Configuration    
-    PA0     ------> ADC1_IN5 
-    */
-    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_0);
 
     /* ADC1 interrupt DeInit */
     HAL_NVIC_DisableIRQ(ADC1_IRQn);
   /* USER CODE BEGIN ADC1_MspDeInit 1 */
 
   /* USER CODE END ADC1_MspDeInit 1 */
-  }
-
-}
-
-void HAL_DAC_MspInit(DAC_HandleTypeDef* hdac)
-{
-
-  GPIO_InitTypeDef GPIO_InitStruct;
-  if(hdac->Instance==DAC1)
-  {
-  /* USER CODE BEGIN DAC1_MspInit 0 */
-
-  /* USER CODE END DAC1_MspInit 0 */
-    /* Peripheral clock enable */
-    __HAL_RCC_DAC1_CLK_ENABLE();
-  
-    /**DAC1 GPIO Configuration    
-    PA4     ------> DAC1_OUT1 
-    */
-    GPIO_InitStruct.Pin = GPIO_PIN_4;
-    GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /* USER CODE BEGIN DAC1_MspInit 1 */
-
-  /* USER CODE END DAC1_MspInit 1 */
-  }
-
-}
-
-void HAL_DAC_MspDeInit(DAC_HandleTypeDef* hdac)
-{
-
-  if(hdac->Instance==DAC1)
-  {
-  /* USER CODE BEGIN DAC1_MspDeInit 0 */
-
-  /* USER CODE END DAC1_MspDeInit 0 */
-    /* Peripheral clock disable */
-    __HAL_RCC_DAC1_CLK_DISABLE();
-  
-    /**DAC1 GPIO Configuration    
-    PA4     ------> DAC1_OUT1 
-    */
-    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_4);
-
-  /* USER CODE BEGIN DAC1_MspDeInit 1 */
-
-  /* USER CODE END DAC1_MspDeInit 1 */
   }
 
 }
