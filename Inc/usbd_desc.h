@@ -1,8 +1,8 @@
 /**
   ******************************************************************************
-  * @file           : main.h
-  * @brief          : Header for main.c file.
-  *                   This file contains the common defines of the application.
+  * @file           : usbd_desc.h
+  * @version        : v2.0_Cube
+  * @brief          : Header for usbd_conf.c file.
   ******************************************************************************
   * This notice applies to any and all portions of this file
   * that are not between comment pairs USER CODE BEGIN and
@@ -46,64 +46,110 @@
   *
   ******************************************************************************
   */
-
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __MAIN_H__
-#define __MAIN_H__
-
-/* Includes ------------------------------------------------------------------*/
-
-/* USER CODE BEGIN Includes */
-#include <stdbool.h>
-#include <stdint.h>
-/* USER CODE END Includes */
-
-/* Private define ------------------------------------------------------------*/
-
-#define Skywritter_RESET_Pin GPIO_PIN_0
-#define Skywritter_RESET_GPIO_Port GPIOB
-#define Skywriter_TRFR_Pin GPIO_PIN_1
-#define Skywriter_TRFR_GPIO_Port GPIOB
-#define Skywriter_TRFR_EXTI_IRQn EXTI1_IRQn
-#define DIAG_OUT_Pin GPIO_PIN_8
-#define DIAG_OUT_GPIO_Port GPIOA
-#define LED_Pin GPIO_PIN_3
-#define LED_GPIO_Port GPIOB
-
-/* ########################## Assert Selection ############################## */
-/**
-  * @brief Uncomment the line below to expanse the "assert_param" macro in the 
-  *        HAL drivers code
-  */
-/* #define USE_FULL_ASSERT    1U */
-
-/* USER CODE BEGIN Private defines */
-#define SKYWRITER_I2C_ADR 0x42
-#define BUF_CNT  4
-#define BUF_SIZE 256
-#define I2C_HEADER_SIZE 4
-#define UART_HEADER_SIZE 2
-typedef enum
-{
-    A0 = 0,
-    VREF,
-    TEMPERATURE,
-    VBAT,
-    ANALOG_IN_CNT
-} ADC_CH;
-
-/* USER CODE END Private defines */
+#ifndef __USBD_DESC__H__
+#define __USBD_DESC__H__
 
 #ifdef __cplusplus
  extern "C" {
 #endif
-void _Error_Handler(char *, int);
 
-#define Error_Handler() _Error_Handler(__FILE__, __LINE__)
+/* Includes ------------------------------------------------------------------*/
+#include "usbd_def.h"
+
+/* USER CODE BEGIN INCLUDE */
+
+/* USER CODE END INCLUDE */
+
+/** @addtogroup STM32_USB_OTG_DEVICE_LIBRARY
+  * @{
+  */
+
+/** @defgroup USBD_DESC USBD_DESC
+  * @brief Usb device descriptors module.
+  * @{
+  */
+
+/** @defgroup USBD_DESC_Exported_Defines USBD_DESC_Exported_Defines
+  * @brief Defines.
+  * @{
+  */
+
+/* USER CODE BEGIN EXPORTED_DEFINES */
+
+/* USER CODE END EXPORTED_DEFINES */
+
+/**
+  * @}
+  */
+
+/** @defgroup USBD_DESC_Exported_TypesDefinitions USBD_DESC_Exported_TypesDefinitions
+  * @brief Types.
+  * @{
+  */
+
+/* USER CODE BEGIN EXPORTED_TYPES */
+
+/* USER CODE END EXPORTED_TYPES */
+
+/**
+  * @}
+  */
+
+/** @defgroup USBD_DESC_Exported_Macros USBD_DESC_Exported_Macros
+  * @brief Aliases.
+  * @{
+  */
+
+/* USER CODE BEGIN EXPORTED_MACRO */
+
+/* USER CODE END EXPORTED_MACRO */
+
+/**
+  * @}
+  */
+
+/** @defgroup USBD_DESC_Exported_Variables USBD_DESC_Exported_Variables
+  * @brief Public variables.
+  * @{
+  */
+
+/** Descriptor for the Usb device. */
+extern USBD_DescriptorsTypeDef FS_Desc;
+
+/* USER CODE BEGIN EXPORTED_VARIABLES */
+
+/* USER CODE END EXPORTED_VARIABLES */
+
+/**
+  * @}
+  */
+
+/** @defgroup USBD_DESC_Exported_FunctionsPrototype USBD_DESC_Exported_FunctionsPrototype
+  * @brief Public functions declaration.
+  * @{
+  */
+
+/* USER CODE BEGIN EXPORTED_FUNCTIONS */
+
+/* USER CODE END EXPORTED_FUNCTIONS */
+
+/**
+  * @}
+  */
+
+/**
+  * @}
+  */
+
+/**
+  * @}
+  */
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __MAIN_H__ */
+#endif /* __USBD_DESC__H__ */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

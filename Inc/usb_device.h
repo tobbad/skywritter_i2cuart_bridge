@@ -1,8 +1,8 @@
 /**
   ******************************************************************************
-  * @file           : main.h
-  * @brief          : Header for main.c file.
-  *                   This file contains the common defines of the application.
+  * @file           : usb_device.h
+  * @version        : v2.0_Cube
+  * @brief          : Header for usb_device.c file.
   ******************************************************************************
   * This notice applies to any and all portions of this file
   * that are not between comment pairs USER CODE BEGIN and
@@ -48,62 +48,67 @@
   */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __MAIN_H__
-#define __MAIN_H__
-
-/* Includes ------------------------------------------------------------------*/
-
-/* USER CODE BEGIN Includes */
-#include <stdbool.h>
-#include <stdint.h>
-/* USER CODE END Includes */
-
-/* Private define ------------------------------------------------------------*/
-
-#define Skywritter_RESET_Pin GPIO_PIN_0
-#define Skywritter_RESET_GPIO_Port GPIOB
-#define Skywriter_TRFR_Pin GPIO_PIN_1
-#define Skywriter_TRFR_GPIO_Port GPIOB
-#define Skywriter_TRFR_EXTI_IRQn EXTI1_IRQn
-#define DIAG_OUT_Pin GPIO_PIN_8
-#define DIAG_OUT_GPIO_Port GPIOA
-#define LED_Pin GPIO_PIN_3
-#define LED_GPIO_Port GPIOB
-
-/* ########################## Assert Selection ############################## */
-/**
-  * @brief Uncomment the line below to expanse the "assert_param" macro in the 
-  *        HAL drivers code
-  */
-/* #define USE_FULL_ASSERT    1U */
-
-/* USER CODE BEGIN Private defines */
-#define SKYWRITER_I2C_ADR 0x42
-#define BUF_CNT  4
-#define BUF_SIZE 256
-#define I2C_HEADER_SIZE 4
-#define UART_HEADER_SIZE 2
-typedef enum
-{
-    A0 = 0,
-    VREF,
-    TEMPERATURE,
-    VBAT,
-    ANALOG_IN_CNT
-} ADC_CH;
-
-/* USER CODE END Private defines */
+#ifndef __USB_DEVICE__H__
+#define __USB_DEVICE__H__
 
 #ifdef __cplusplus
  extern "C" {
 #endif
-void _Error_Handler(char *, int);
 
-#define Error_Handler() _Error_Handler(__FILE__, __LINE__)
+/* Includes ------------------------------------------------------------------*/
+#include "stm32l4xx.h"
+#include "stm32l4xx_hal.h"
+#include "usbd_def.h"
+
+/* USER CODE BEGIN INCLUDE */
+
+/* USER CODE END INCLUDE */
+
+/** @addtogroup USBD_OTG_DRIVER
+  * @{
+  */
+
+/** @defgroup USBD_DEVICE USBD_DEVICE
+  * @brief Device file for Usb otg low level driver.
+  * @{
+  */
+
+/** @defgroup USBD_DEVICE_Exported_Variables USBD_DEVICE_Exported_Variables
+  * @brief Public variables.
+  * @{
+  */
+
+/** USB device core handle. */
+extern USBD_HandleTypeDef hUsbDeviceFS;
+
+/**
+  * @}
+  */
+
+/** @defgroup USBD_DEVICE_Exported_FunctionsPrototype USBD_DEVICE_Exported_FunctionsPrototype
+  * @brief Declaration of public functions for Usb device.
+  * @{
+  */
+
+/** USB Device initialization function. */
+void MX_USB_DEVICE_Init(void);
+
+/**
+  * @}
+  */
+
+/**
+  * @}
+  */
+
+/**
+  * @}
+  */
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __MAIN_H__ */
+#endif /* __USB_DEVICE__H__ */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

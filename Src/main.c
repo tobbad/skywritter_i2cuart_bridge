@@ -4,41 +4,52 @@
   * @file           : main.c
   * @brief          : Main program body
   ******************************************************************************
-  ** This notice applies to any and all portions of this file
+  * This notice applies to any and all portions of this file
   * that are not between comment pairs USER CODE BEGIN and
   * USER CODE END. Other portions of this file, whether 
   * inserted by the user or by software development tools
   * are owned by their respective copyright owners.
   *
-  * COPYRIGHT(c) 2018 STMicroelectronics
+  * Copyright (c) 2018 STMicroelectronics International N.V. 
+  * All rights reserved.
   *
-  * Redistribution and use in source and binary forms, with or without modification,
-  * are permitted provided that the following conditions are met:
-  *   1. Redistributions of source code must retain the above copyright notice,
-  *      this list of conditions and the following disclaimer.
-  *   2. Redistributions in binary form must reproduce the above copyright notice,
-  *      this list of conditions and the following disclaimer in the documentation
-  *      and/or other materials provided with the distribution.
-  *   3. Neither the name of STMicroelectronics nor the names of its contributors
-  *      may be used to endorse or promote products derived from this software
-  *      without specific prior written permission.
+  * Redistribution and use in source and binary forms, with or without 
+  * modification, are permitted, provided that the following conditions are met:
   *
-  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  * 1. Redistribution of source code must retain the above copyright notice, 
+  *    this list of conditions and the following disclaimer.
+  * 2. Redistributions in binary form must reproduce the above copyright notice,
+  *    this list of conditions and the following disclaimer in the documentation
+  *    and/or other materials provided with the distribution.
+  * 3. Neither the name of STMicroelectronics nor the names of other 
+  *    contributors to this software may be used to endorse or promote products 
+  *    derived from this software without specific written permission.
+  * 4. This software, including modifications and/or derivative works of this 
+  *    software, must execute solely and exclusively on microcontroller or
+  *    microprocessor devices manufactured by or for STMicroelectronics.
+  * 5. Redistribution and use of this software other than as permitted under 
+  *    this license is void and will automatically terminate your rights under 
+  *    this license. 
+  *
+  * THIS SOFTWARE IS PROVIDED BY STMICROELECTRONICS AND CONTRIBUTORS "AS IS" 
+  * AND ANY EXPRESS, IMPLIED OR STATUTORY WARRANTIES, INCLUDING, BUT NOT 
+  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A 
+  * PARTICULAR PURPOSE AND NON-INFRINGEMENT OF THIRD PARTY INTELLECTUAL PROPERTY
+  * RIGHTS ARE DISCLAIMED TO THE FULLEST EXTENT PERMITTED BY LAW. IN NO EVENT 
+  * SHALL STMICROELECTRONICS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+  * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+  * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, 
+  * OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF 
+  * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING 
+  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   *
   ******************************************************************************
   */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32l4xx_hal.h"
+#include "usb_device.h"
 
 /* USER CODE BEGIN Includes */
 #include "stdio.h"
@@ -46,8 +57,6 @@
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
-ADC_HandleTypeDef hadc1;
-
 I2C_HandleTypeDef hi2c1;
 DMA_HandleTypeDef hdma_i2c1_rx;
 DMA_HandleTypeDef hdma_i2c1_tx;
@@ -55,8 +64,11 @@ DMA_HandleTypeDef hdma_i2c1_tx;
 RTC_HandleTypeDef hrtc;
 
 UART_HandleTypeDef huart1;
+UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart1_rx;
 DMA_HandleTypeDef hdma_usart1_tx;
+DMA_HandleTypeDef hdma_usart2_rx;
+DMA_HandleTypeDef hdma_usart2_tx;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
@@ -94,7 +106,6 @@ typedef struct i2c_heder_t_
 
 static const uint8_t UART_HEADER[]={0xFE, 0xFF};
 static const uint32_t RX_TIMEOUT = 1000;
-static const uint32_t TEMP_LOG_TIMEOUT_ms = 1000;
 static const uint16_t I2C_MSG_SIZE = BUF_SIZE;
 
 
@@ -103,12 +114,12 @@ static uint8_t rx_buf[BUF_SIZE];
 static uint8_t tx_buf[BUF_SIZE];
 static GPIO_InitTypeDef skywr_pin;
 static sio_t log_io = {
-    .uart = &huart1,
+    .uart = &huart2,
     .ready = {true, true},
     .buffer_size ={BUF_SIZE, BUF_SIZE},
     .bytes_in_buffer = {0,0},
-    .buffer = {rx_buf, tx_buf}
-    //.buffer = {NULL, NULL}
+    //.buffer = {rx_buf, tx_buf}
+    .buffer = {NULL, NULL}
 };
 static I2C_RX_STATE i2c_state = IDLE;
 #if 0
@@ -127,23 +138,6 @@ static const uint8_t autocalib_disable[] = {0x00, 0x00, 0xA2, 0x80, 0x00 , 0x00,
  * UART RX stuff
  */
 static UART_RX_STATE uart_state = UART_IDLE;
-/*
- * Calibration values for ADC
- */
-static const uint16_t* TS_CAL1=(uint16_t*)(0x1FFF75A8);
-static const uint16_t* TS_CAL2=(uint16_t*)(0x1FFF75CA);
-static const float TS_T1_C = TEMPSENSOR_CAL1_TEMP;
-static const float TS_T2_C = TEMPSENSOR_CAL2_TEMP;
-static const uint16_t* VREFINT=(uint16_t*)(0x1FFF75AA);
-static const float CALIB_VOLTAGE_mV = VREFINT_CAL_VREF;
-static const float VDDA_mV = 3300.0;
-static const uint32_t analog_in_map[ANALOG_IN_CNT] =
-{
-    ADC_CHANNEL_5,
-    ADC_CHANNEL_VREFINT,
-    ADC_CHANNEL_TEMPSENSOR,
-    ADC_CHANNEL_VBAT
-};
 
 /* USER CODE END PV */
 
@@ -153,8 +147,8 @@ static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_RTC_Init(void);
-static void MX_ADC1_Init(void);
 static void MX_USART1_UART_Init(void);
+static void MX_USART2_UART_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
@@ -204,7 +198,7 @@ void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *I2cHandle)
  */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *uart)
 {
-    if (uart == USART1)
+    if (uart->Instance == USART1)
     {
         if (uart_state == UART_WAITING_FOR_HEADER)
         {
@@ -216,30 +210,44 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *uart)
         }
     }
 }
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *uart)
+{
+    if (uart->Instance == USART1)
+    {
+        uart_state = UART_IDLE;
+    }
+}
 /*
  * UART state machine for data received from the host
  */
 void handle_uart_rx(UART_HandleTypeDef *uart)
 {
-    if (uart_state == UART_IDLE)
+    if (uart->Instance == USART1)
     {
-        HAL_UART_Receive_DMA(uart, rx_buf, UART_HEADER_SIZE+I2C_HEADER_SIZE);
-        uart_state = UART_WAITING_FOR_HEADER;
-    }
-    else if (uart_state == UART_HEADER_READY)
-    {
-        uint16_t msg_size = rx_buf[UART_HEADER_SIZE];
-        HAL_UART_Receive_DMA(uart, &rx_buf[UART_HEADER_SIZE+I2C_HEADER_SIZE], msg_size);
-        uart_state = UART_WAITING_FOR_DISPATCHING;
-    }
-    else if (uart_state == UART_FRAME_READY)
-    {
-        uart_state = UART_WAITING_FOR_DISPATCHING;
-    }
-    else if (uart_state == UART_MEASSAGE_DISPATCHED)
-    {
-        HAL_UART_Receive_DMA(uart, rx_buf, UART_HEADER_SIZE+I2C_HEADER_SIZE);
-        uart_state = UART_WAITING_FOR_HEADER;
+        if (uart_state == UART_IDLE)
+        {
+            HAL_UART_Receive_DMA(uart, rx_buf, UART_HEADER_SIZE+I2C_HEADER_SIZE);
+            uart_state = UART_WAITING_FOR_HEADER;
+            printf("WFH"NL);
+        }
+        else if (uart_state == UART_HEADER_READY)
+        {
+            uint16_t msg_size = rx_buf[UART_HEADER_SIZE]-I2C_HEADER_SIZE;
+            HAL_UART_Receive_DMA(uart, &rx_buf[UART_HEADER_SIZE+I2C_HEADER_SIZE], msg_size);
+            uart_state = UART_WAITING_FOR_FRAME;
+            printf("WFF %d"NL, msg_size);
+        }
+        else if (uart_state == UART_FRAME_READY)
+        {
+            uart_state = UART_WAITING_FOR_DISPATCHING;
+            printf("WFD"NL);
+        }
+        else if (uart_state == UART_MEASSAGE_DISPATCHED)
+        {
+            printf("WFH"NL);
+            HAL_UART_Receive_DMA(uart, rx_buf, UART_HEADER_SIZE+I2C_HEADER_SIZE);
+            uart_state = UART_WAITING_FOR_HEADER;
+        }
     }
     return;
 }
@@ -256,8 +264,6 @@ int main(void)
   /* USER CODE BEGIN 1 */
     uint16_t timeout = 0;
     uint32_t ltick = HAL_GetTick();
-    uint32_t dac_value=0;
-    uint32_t dac_val_increase = 124;
   /* USER CODE END 1 */
 
   /* MCU Configuration----------------------------------------------------------*/
@@ -281,13 +287,14 @@ int main(void)
   MX_DMA_Init();
   MX_I2C1_Init();
   MX_RTC_Init();
-  MX_ADC1_Init();
   MX_USART1_UART_Init();
+  MX_USART2_UART_Init();
+  MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
     i2c_buf[0] = UART_HEADER[0];
     i2c_buf[1] = UART_HEADER[1];
     serial_io_init(&log_io);
-    //printf("Start up"NEWLINE);
+    printf("Start up"NEWLINE);
     skywr_pin.Pin = Skywriter_TRFR_Pin;
     skywr_pin.Mode = GPIO_MODE_IT_FALLING;
     skywr_pin.Pull = GPIO_NOPULL;
@@ -295,11 +302,7 @@ int main(void)
 
     HAL_GPIO_WritePin(Skywritter_RESET_GPIO_Port, Skywritter_RESET_Pin, GPIO_PIN_RESET);
     HAL_Delay(10);
-    //HAL_GPIO_WritePin(Skywritter_RESET_GPIO_Port, Skywritter_RESET_Pin, GPIO_PIN_SET);
-    HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
-    write_value(dac_value);
-    float temp = read_temperature();
-    //printf("Temperature is %f C"NL, temp);
+    HAL_GPIO_WritePin(Skywritter_RESET_GPIO_Port, Skywritter_RESET_Pin, GPIO_PIN_SET);
 
   /* USER CODE END 2 */
 
@@ -307,6 +310,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
     while (1)
     {
+#if 0
         uint32_t tick = HAL_GetTick();
         if (i2c_state == I2C_DATA_READY)
         {
@@ -352,12 +356,15 @@ int main(void)
             HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
             i2c_state = IDLE;
         }
+#endif
         handle_uart_rx(&huart1);
         if ( (i2c_state == IDLE) && (uart_state == UART_WAITING_FOR_DISPATCHING))
         {
             uint16_t msg_size = rx_buf[UART_HEADER_SIZE];
+
             HAL_I2C_Master_Transmit_DMA(&hi2c1, SKYWRITER_I2C_ADR<<1, &rx_buf[UART_HEADER_SIZE], msg_size);
-            i2c_state == WAITING_FRAME_SEND;
+            i2c_state = WAITING_FRAME_SEND;
+            printf("i2cWFS"NL);
        }
   /* USER CODE END WHILE */
 
@@ -419,18 +426,20 @@ void SystemClock_Config(void)
   }
 
   PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_RTC|RCC_PERIPHCLK_USART1
-                              |RCC_PERIPHCLK_I2C1|RCC_PERIPHCLK_ADC;
+                              |RCC_PERIPHCLK_USART2|RCC_PERIPHCLK_I2C1
+                              |RCC_PERIPHCLK_USB;
   PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK2;
+  PeriphClkInit.Usart2ClockSelection = RCC_USART2CLKSOURCE_PCLK1;
   PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
-  PeriphClkInit.AdcClockSelection = RCC_ADCCLKSOURCE_PLLSAI1;
   PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
+  PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLLSAI1;
   PeriphClkInit.PLLSAI1.PLLSAI1Source = RCC_PLLSOURCE_MSI;
   PeriphClkInit.PLLSAI1.PLLSAI1M = 1;
   PeriphClkInit.PLLSAI1.PLLSAI1N = 24;
   PeriphClkInit.PLLSAI1.PLLSAI1P = RCC_PLLP_DIV7;
   PeriphClkInit.PLLSAI1.PLLSAI1Q = RCC_PLLQ_DIV2;
   PeriphClkInit.PLLSAI1.PLLSAI1R = RCC_PLLR_DIV2;
-  PeriphClkInit.PLLSAI1.PLLSAI1ClockOut = RCC_PLLSAI1_ADC1CLK;
+  PeriphClkInit.PLLSAI1.PLLSAI1ClockOut = RCC_PLLSAI1_48M2CLK;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
@@ -461,49 +470,6 @@ void SystemClock_Config(void)
 
   /* SysTick_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
-}
-
-/* ADC1 init function */
-static void MX_ADC1_Init(void)
-{
-
-  ADC_ChannelConfTypeDef sConfig;
-
-    /**Common config 
-    */
-  hadc1.Instance = ADC1;
-  hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
-  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
-  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
-  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
-  hadc1.Init.LowPowerAutoWait = DISABLE;
-  hadc1.Init.ContinuousConvMode = DISABLE;
-  hadc1.Init.NbrOfConversion = 1;
-  hadc1.Init.DiscontinuousConvMode = DISABLE;
-  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
-  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-  hadc1.Init.DMAContinuousRequests = DISABLE;
-  hadc1.Init.Overrun = ADC_OVR_DATA_PRESERVED;
-  hadc1.Init.OversamplingMode = DISABLE;
-  if (HAL_ADC_Init(&hadc1) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-    /**Configure Regular Channel 
-    */
-  sConfig.Channel = ADC_CHANNEL_VREFINT;
-  sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_640CYCLES_5;
-  sConfig.SingleDiff = ADC_SINGLE_ENDED;
-  sConfig.OffsetNumber = ADC_OFFSET_NONE;
-  sConfig.Offset = 0;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
 }
 
 /* I2C1 init function */
@@ -599,7 +565,7 @@ static void MX_USART1_UART_Init(void)
 {
 
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 9600;
+  huart1.Init.BaudRate = 115200;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
@@ -609,6 +575,27 @@ static void MX_USART1_UART_Init(void)
   huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
   huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
   if (HAL_UART_Init(&huart1) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+}
+
+/* USART2 init function */
+static void MX_USART2_UART_Init(void)
+{
+
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
@@ -631,6 +618,12 @@ static void MX_DMA_Init(void)
   /* DMA1_Channel5_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel5_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel5_IRQn);
+  /* DMA1_Channel6_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel6_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel6_IRQn);
+  /* DMA1_Channel7_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel7_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel7_IRQn);
   /* DMA2_Channel6_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Channel6_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA2_Channel6_IRQn);
@@ -666,12 +659,10 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(DIAG_OUT_GPIO_Port, DIAG_OUT_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : PA0 PA1 PA2 PA3 
-                           PA4 PA5 PA6 PA7 
-                           PA11 PA12 PA15 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3 
-                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7 
-                          |GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_15;
+  /*Configure GPIO pins : PA0 PA1 PA3 PA4 
+                           PA5 PA6 PA7 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_3|GPIO_PIN_4 
+                          |GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
