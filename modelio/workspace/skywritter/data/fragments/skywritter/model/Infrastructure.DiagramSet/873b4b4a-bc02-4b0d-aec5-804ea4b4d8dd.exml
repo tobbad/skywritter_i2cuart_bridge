@@ -1,0 +1,12 @@
+<?xml version="1.0" ?>
+<!--GENERATED FILE, PLEASE DO NOT EDIT!!!--><EXT object="skywritter" version="4">
+  <OBJECT>
+    <ID name="skywritter" mc="Infrastructure.DiagramSet" uid="873b4b4a-bc02-4b0d-aec5-804ea4b4d8dd"/>
+    <PID name="skywritter" mc="Standard.Project" uid="66e0134e-90ff-4f52-aae1-5a1a186506a8"/>
+    <ATTRIBUTES>
+      <ATT name="Name"><![CDATA[skywritter]]></ATT>
+      <ATT name="status">1970354901745664</ATT>
+    </ATTRIBUTES>
+    <DEPENDENCIES></DEPENDENCIES>
+  </OBJECT>
+</EXT>

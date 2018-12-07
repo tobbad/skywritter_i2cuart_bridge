@@ -97,14 +97,14 @@ int _write(int32_t file, uint8_t *ptr, int32_t len)
     return (status==HAL_OK)?len:-1;
 }
 
-
+#if 0
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle)
 {
   /* Set transmission flag: transfer complete*/
   sio.ready[SIO_TX] = true;
   sio.bytes_in_buffer[SIO_TX] = 0;
 }
-
+#endif
 
 int _read(int32_t file, uint8_t *ptr, int32_t len)
 {

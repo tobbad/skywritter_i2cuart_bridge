@@ -1,0 +1,20 @@
+<?xml version="1.0" ?>
+<!--GENERATED FILE, PLEASE DO NOT EDIT!!!--><EXT object="skywritter" version="4">
+  <OBJECT>
+    <ID name="skywritter" mc="Standard.Project" uid="66e0134e-90ff-4f52-aae1-5a1a186506a8"/>
+    <ATTRIBUTES>
+      <ATT name="ProjectContext"></ATT>
+      <ATT name="ProjectDescr"></ATT>
+      <ATT name="Name"><![CDATA[skywritter]]></ATT>
+      <ATT name="status">1970354901745664</ATT>
+    </ATTRIBUTES>
+    <DEPENDENCIES>
+      <COMP relation="Model">
+        <COMPID name="skywritter" mc="Standard.Package" uid="4804101e-7141-4ffa-8a38-0bc435e3fb2e"/>
+      </COMP>
+      <COMP relation="DiagramRoot">
+        <COMPID name="skywritter" mc="Infrastructure.DiagramSet" uid="873b4b4a-bc02-4b0d-aec5-804ea4b4d8dd"/>
+      </COMP>
+    </DEPENDENCIES>
+  </OBJECT>
+</EXT>

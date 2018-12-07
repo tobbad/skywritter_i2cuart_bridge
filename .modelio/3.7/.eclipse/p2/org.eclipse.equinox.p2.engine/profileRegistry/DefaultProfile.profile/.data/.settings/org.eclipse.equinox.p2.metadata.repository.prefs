@@ -1,0 +1,16 @@
+eclipse.preferences.version=1
+repositories/file\:_home_user_.modelio_3.7_.eclipse_configuration.x86_64.os_org.eclipse.osgi_118_data_listener_1925729951/description=
+repositories/file\:_home_user_.modelio_3.7_.eclipse_configuration.x86_64.os_org.eclipse.osgi_118_data_listener_1925729951/isSystem=true
+repositories/file\:_home_user_.modelio_3.7_.eclipse_configuration.x86_64.os_org.eclipse.osgi_118_data_listener_1925729951/name=dropins
+repositories/file\:_home_user_.modelio_3.7_.eclipse_configuration.x86_64.os_org.eclipse.osgi_118_data_listener_1925729951/provider=
+repositories/file\:_home_user_.modelio_3.7_.eclipse_configuration.x86_64.os_org.eclipse.osgi_118_data_listener_1925729951/type=org.eclipse.equinox.internal.p2.metadata.repository.LocalMetadataRepository
+repositories/file\:_home_user_.modelio_3.7_.eclipse_configuration.x86_64.os_org.eclipse.osgi_118_data_listener_1925729951/uri=file\:/home/user/.modelio/3.7/.eclipse/configuration.x86_64.os/org.eclipse.osgi/118/data/listener_1925729951/
+repositories/file\:_home_user_.modelio_3.7_.eclipse_configuration.x86_64.os_org.eclipse.osgi_118_data_listener_1925729951/version=1
+repositories/file\:_usr_lib_modelio-open-source3.7_.eclipseextension/description=
+repositories/file\:_usr_lib_modelio-open-source3.7_.eclipseextension/enabled=true
+repositories/file\:_usr_lib_modelio-open-source3.7_.eclipseextension/isSystem=true
+repositories/file\:_usr_lib_modelio-open-source3.7_.eclipseextension/name=/usr/lib/modelio-open-source3.7/.eclipseextension
+repositories/file\:_usr_lib_modelio-open-source3.7_.eclipseextension/provider=
+repositories/file\:_usr_lib_modelio-open-source3.7_.eclipseextension/type=org.eclipse.equinox.p2.extensionlocation.metadataRepository
+repositories/file\:_usr_lib_modelio-open-source3.7_.eclipseextension/uri=file\:/usr/lib/modelio-open-source3.7/.eclipseextension
+repositories/file\:_usr_lib_modelio-open-source3.7_.eclipseextension/version=1

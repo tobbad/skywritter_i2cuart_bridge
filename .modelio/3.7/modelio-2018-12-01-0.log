@@ -1,0 +1,89 @@
+2018-12-01 17:28:49,169 ERROR modelio.core     - Kernel log test : error enabled.
+2018-12-01 17:28:49,170 WARN  modelio.core     - Kernel log test : warning enabled.
+2018-12-01 17:28:49,170 TRACE modelio.core     - Kernel log test : trace enabled.
+2018-12-01 17:28:49,174 INFO  o.modelio.utils  - BundleEvent STARTED
+2018-12-01 17:28:49,175 INFO  .m.e.texteditors - BundleEvent STARTED
+2018-12-01 17:28:49,178 INFO  o.m.e.richnote   - BundleEvent STARTED
+2018-12-01 17:28:49,178 INFO  o.m.d.editor     - BundleEvent STARTED
+2018-12-01 17:28:49,180 INFO  o.m.d.elements   - BundleEvent STARTED
+2018-12-01 17:28:49,617 INFO  o.modelio.app.ui - Log level: 1
+2018-12-01 17:28:49,659 INFO  .m.a.preferences - BundleEvent STARTED
+2018-12-01 17:28:49,666 INFO  o.modelio.app.ui - BundleEvent STARTED
+2018-12-01 17:28:49,672 INFO  o.m.a.p.core     - BundleEvent STARTED
+2018-12-01 17:28:49,674 INFO  o.m.app.core     - BundleEvent STARTED
+2018-12-01 17:28:49,874 INFO  o.m.a.update.ext - BundleEvent STARTED
+2018-12-01 17:28:50,024 TRACE modelio.core     - '/home/user/.modelio/3.7/modules' module catalog version is 0 instead of 4, cleaning the catalog...
+2018-12-01 17:28:50,032 TRACE modelio.core     - '/home/user/.modelio/3.7/modules' module catalog cleaning done
+2018-12-01 17:28:51,576 TRACE modelio.core     - The 'TogafArchitect' repository index is missing.
+2018-12-01 17:28:52,686 TRACE modelio.core     - Closing the 'TogafArchitect' project ...
+2018-12-01 17:28:52,758 TRACE modelio.core     - Closed the 'TogafArchitect' project.
+2018-12-01 17:28:53,358 TRACE modelio.core     - The 'PersistentProfile' repository index is missing.
+2018-12-01 17:28:54,111 TRACE modelio.core     - Closing the 'PersistentProfile' project ...
+2018-12-01 17:28:54,170 TRACE modelio.core     - Closed the 'PersistentProfile' project.
+2018-12-01 17:28:54,540 TRACE modelio.core     - The 'ModelerModule' repository index is missing.
+2018-12-01 17:28:55,535 TRACE modelio.core     - Closing the 'ModelerModule' project ...
+2018-12-01 17:28:55,589 TRACE modelio.core     - Closed the 'ModelerModule' project.
+2018-12-01 17:28:56,104 TRACE modelio.core     - The 'JavaDesigner' repository index is missing.
+2018-12-01 17:28:56,882 TRACE modelio.core     - Closing the 'JavaDesigner' project ...
+2018-12-01 17:28:56,944 TRACE modelio.core     - Closed the 'JavaDesigner' project.
+2018-12-01 17:28:57,320 TRACE modelio.core     - The 'SysMLArchitect' repository index is missing.
+2018-12-01 17:28:58,061 TRACE modelio.core     - Closing the 'SysMLArchitect' project ...
+2018-12-01 17:28:58,117 TRACE modelio.core     - Closed the 'SysMLArchitect' project.
+2018-12-01 17:28:58,485 TRACE modelio.core     - The 'WebModelPublisher' repository index is missing.
+2018-12-01 17:28:59,161 TRACE modelio.core     - Closing the 'WebModelPublisher' project ...
+2018-12-01 17:28:59,219 TRACE modelio.core     - Closed the 'WebModelPublisher' project.
+2018-12-01 17:28:59,467 INFO  org.modelio.ui   - BundleEvent STARTED
+2018-12-01 17:28:59,658 INFO  .m.d.persistence - BundleEvent STARTED
+2018-12-01 17:28:59,660 INFO  o.m.d.styles     - BundleEvent STARTED
+2018-12-01 17:28:59,668 INFO  o.m.core.rcp     - BundleEvent STARTED
+2018-12-01 17:28:59,718 INFO  o.m.a.p.core.ext - BundleEvent STARTED
+2018-12-01 17:28:59,742 INFO  .m.m.propertytab - BundleEvent STARTED
+2018-12-01 17:28:59,742 INFO  o.m.mda.infra    - BundleEvent STARTED
+2018-12-01 17:28:59,743 INFO  org.modelio.api  - BundleEvent STARTED
+2018-12-01 17:28:59,769 INFO  o.m.app.ramcs    - BundleEvent STARTED
+2018-12-01 17:28:59,772 INFO  o.m.d.e.statik   - BundleEvent STARTED
+2018-12-01 17:28:59,838 INFO  o.m.d.e.bpmn     - BundleEvent STARTED
+2018-12-01 17:28:59,864 INFO  o.m.d.e.object   - BundleEvent STARTED
+2018-12-01 17:28:59,869 INFO  m.d.e.deployment - BundleEvent STARTED
+2018-12-01 17:28:59,879 INFO  o.m.d.e.sequence - BundleEvent STARTED
+2018-12-01 17:28:59,894 INFO  o.m.d.e.activity - BundleEvent STARTED
+2018-12-01 17:28:59,923 INFO  o.m.d.e.state    - BundleEvent STARTED
+2018-12-01 17:28:59,942 INFO  .e.communication - BundleEvent STARTED
+2018-12-01 17:28:59,947 INFO  o.m.d.e.usecase  - BundleEvent STARTED
+2018-12-01 17:28:59,957 INFO  .m.d.e.composite - BundleEvent STARTED
+2018-12-01 17:28:59,963 INFO  o.m.api.impl     - BundleEvent STARTED
+2018-12-01 17:29:00,638 INFO  o.modelio.audit  - BundleEvent STARTED
+2018-12-01 17:29:00,658 INFO  o.m.bpmn.ui      - BundleEvent STARTED
+2018-12-01 17:29:00,672 INFO  o.modelio.uml.ui - BundleEvent STARTED
+2018-12-01 17:29:00,930 TRACE modelio.core     - '/home/user/.modelio/3.7/.eclipse/configuration.x86_64.os/org.eclipse.osgi/268/data/modules_cache' module catalog version is 0 instead of 1, cleaning the catalog...
+2018-12-01 17:29:00,931 TRACE modelio.core     - '/home/user/.modelio/3.7/.eclipse/configuration.x86_64.os/org.eclipse.osgi/268/data/modules_cache' module catalog cleaning done
+2018-12-01 17:29:00,934 INFO  o.m.audit.ext    - BundleEvent STARTED
+2018-12-01 17:29:00,936 INFO  o.m.m.commands   - BundleEvent STARTED
+2018-12-01 17:29:00,940 INFO  o.m.m.b.view     - BundleEvent STARTED
+2018-12-01 17:29:00,944 INFO  o.m.patterns     - BundleEvent STARTED
+2018-12-01 17:29:00,949 INFO  o.modelio.script - BundleEvent STARTED
+2018-12-01 17:29:00,965 INFO  o.m.e.dialogs    - BundleEvent STARTED
+2018-12-01 17:29:00,970 INFO  o.m.m.b.view.ext - BundleEvent STARTED
+2018-12-01 17:29:01,123 INFO  o.m.model.search - BundleEvent STARTED
+2018-12-01 17:29:01,123 INFO  o.m.m.s.engine   - BundleEvent STARTED
+2018-12-01 17:29:01,123 INFO  o.m.app.modules  - BundleEvent STARTED
+2018-12-01 17:29:01,123 INFO  o.m.a.p.conf     - BundleEvent STARTED
+2018-12-01 17:29:01,158 INFO  o.m.m.property   - BundleEvent STARTED
+2018-12-01 17:29:01,161 INFO  o.m.core.ui      - BundleEvent STARTED
+2018-12-01 17:29:01,175 INFO  org.modelio.xmi  - BundleEvent STARTED
+2018-12-01 17:29:01,176 INFO  .m.d.diagramauto - BundleEvent STARTED
+2018-12-01 17:29:01,181 INFO  o.m.a.project.ui - BundleEvent STARTED
+2018-12-01 17:29:01,188 INFO  o.m.bpmn-xml     - BundleEvent STARTED
+2018-12-01 17:29:01,191 INFO  o.m.admtool      - BundleEvent STARTED
+2018-12-01 17:29:01,200 INFO  o.m.a.m.import   - BundleEvent STARTED
+2018-12-01 17:29:01,202 INFO  o.m.a.p.ui.ext   - BundleEvent STARTED
+2018-12-01 17:29:01,207 INFO  o.m.c.wizard.ext - BundleEvent STARTED
+2018-12-01 17:29:01,210 INFO  o.m.c.wizard     - BundleEvent STARTED
+2018-12-01 17:29:59,960 TRACE modelio.core     - The 'skywritter' repository index is missing.
+2018-12-01 17:30:06,337 TRACE modelio.core     - Closing the 'skywritter' project ...
+2018-12-01 17:30:07,884 TRACE modelio.core     - Closed the 'skywritter' project.
+2018-12-01 17:30:08,330 INFO  o.modelio.vaudit - BundleEvent STARTED
+2018-12-01 17:30:08,448 INFO  o.m.diagram.api  - BundleEvent STARTED
+2018-12-01 17:30:10,649 INFO  o.m.e.notes      - BundleEvent STARTED
+2018-12-01 17:30:19,007 INFO  o.m.m.b.commands - BundleEvent STARTED
+2018-12-01 17:31:17,418 INFO  o.m.d.symbol     - BundleEvent STARTED

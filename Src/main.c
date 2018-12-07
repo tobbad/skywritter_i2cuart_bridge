@@ -1,4 +1,4 @@
-
+/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
   * @file           : main.c
@@ -46,15 +46,32 @@
   *
   ******************************************************************************
   */
+/* USER CODE END Header */
+
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "stm32l4xx_hal.h"
 #include "usb_device.h"
 
+/* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "stdio.h"
 #include "serial_io.h"
 /* USER CODE END Includes */
+
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
+
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
@@ -91,7 +108,9 @@ typedef enum
     UART_WAITING_FOR_FRAME,
     UART_FRAME_READY,
     UART_WAITING_FOR_DISPATCHING,
-    UART_MEASSAGE_DISPATCHED,
+    UART_MESSAGE_DISPATCHED,
+    UART_WAITING_FOR_I2C_ANSWER,
+    UART_WAITING_FOR_ANSWER_SENT,
 } UART_RX_STATE;
 
 
@@ -113,13 +132,20 @@ static uint8_t i2c_buf[BUF_SIZE];
 static uint8_t rx_buf[BUF_SIZE];
 static uint8_t tx_buf[BUF_SIZE];
 static GPIO_InitTypeDef skywr_pin;
+
+//#define UART_USE_BUFFER 1
+
 static sio_t log_io = {
     .uart = &huart2,
     .ready = {true, true},
+#if defined(UART_USE_BUFFER)
     .buffer_size ={BUF_SIZE, BUF_SIZE},
+    .buffer = {rx_buf, tx_buf},
+#else
+    .buffer_size ={0, 0},
+    .buffer = {NULL, NULL},
+#endif
     .bytes_in_buffer = {0,0},
-    //.buffer = {rx_buf, tx_buf}
-    .buffer = {NULL, NULL}
 };
 static I2C_RX_STATE i2c_state = IDLE;
 #if 0
@@ -149,12 +175,12 @@ static void MX_I2C1_Init(void);
 static void MX_RTC_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
-
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
 
 /* USER CODE END PFP */
 
+/* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 /*
  * Handling of communication to the I2C
@@ -187,9 +213,9 @@ void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *I2cHandle)
 
 void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *I2cHandle)
 {
-    if ((I2cHandle == &hi2c1) && (uart_state == UART_WAITING_FOR_DISPATCHING))
+    if ((I2cHandle == &hi2c1) && (i2c_state == WAITING_FRAME_SEND))
     {
-        uart_state = UART_MEASSAGE_DISPATCHED;
+        uart_state = UART_MESSAGE_DISPATCHED;
         i2c_state = IDLE;
     }
 }
@@ -210,6 +236,18 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *uart)
         }
     }
 }
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *uart)
+{
+    if (uart->Instance == USART1)
+    {
+        if (uart_state == UART_WAITING_FOR_ANSWER_SENT)
+        {
+            uart_state = UART_IDLE;
+        }
+    }
+}
+
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *uart)
 {
     if (uart->Instance == USART1)
@@ -226,27 +264,30 @@ void handle_uart_rx(UART_HandleTypeDef *uart)
     {
         if (uart_state == UART_IDLE)
         {
+            rx_buf[0]=0;
             HAL_UART_Receive_DMA(uart, rx_buf, UART_HEADER_SIZE+I2C_HEADER_SIZE);
             uart_state = UART_WAITING_FOR_HEADER;
-            printf("WFH"NL);
+            printf("UWFH"NL);
         }
         else if (uart_state == UART_HEADER_READY)
         {
-            uint16_t msg_size = rx_buf[UART_HEADER_SIZE]-I2C_HEADER_SIZE;
-            HAL_UART_Receive_DMA(uart, &rx_buf[UART_HEADER_SIZE+I2C_HEADER_SIZE], msg_size);
+            uint16_t msg_size = rx_buf[UART_HEADER_SIZE];
+            if (msg_size>250)
+            {
+                printf("UWFF %d"NL, msg_size);
+            }
+            HAL_UART_Receive_DMA(uart, &rx_buf[UART_HEADER_SIZE+I2C_HEADER_SIZE], msg_size-I2C_HEADER_SIZE);
             uart_state = UART_WAITING_FOR_FRAME;
-            printf("WFF %d"NL, msg_size);
         }
         else if (uart_state == UART_FRAME_READY)
         {
             uart_state = UART_WAITING_FOR_DISPATCHING;
-            printf("WFD"NL);
+            printf("UWFD"NL);
         }
-        else if (uart_state == UART_MEASSAGE_DISPATCHED)
+        else if (uart_state == UART_MESSAGE_DISPATCHED)
         {
-            printf("WFH"NL);
-            HAL_UART_Receive_DMA(uart, rx_buf, UART_HEADER_SIZE+I2C_HEADER_SIZE);
-            uart_state = UART_WAITING_FOR_HEADER;
+            uart_state = UART_IDLE;
+            printf("UI"NL);
         }
     }
     return;
@@ -256,8 +297,7 @@ void handle_uart_rx(UART_HandleTypeDef *uart)
 
 /**
   * @brief  The application entry point.
-  *
-  * @retval None
+  * @retval int
   */
 int main(void)
 {
@@ -266,7 +306,7 @@ int main(void)
     uint32_t ltick = HAL_GetTick();
   /* USER CODE END 1 */
 
-  /* MCU Configuration----------------------------------------------------------*/
+  /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
@@ -291,10 +331,10 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
-    i2c_buf[0] = UART_HEADER[0];
-    i2c_buf[1] = UART_HEADER[1];
+    tx_buf[0] = UART_HEADER[0];
+    tx_buf[1] = UART_HEADER[1];
     serial_io_init(&log_io);
-    printf("Start up"NEWLINE);
+    printf(NL NL">>> Start up"NL);
     skywr_pin.Pin = Skywriter_TRFR_Pin;
     skywr_pin.Mode = GPIO_MODE_IT_FALLING;
     skywr_pin.Pull = GPIO_NOPULL;
@@ -310,7 +350,6 @@ int main(void)
   /* USER CODE BEGIN WHILE */
     while (1)
     {
-#if 0
         uint32_t tick = HAL_GetTick();
         if (i2c_state == I2C_DATA_READY)
         {
@@ -321,18 +360,23 @@ int main(void)
             //printf("I2C data ready"NL);
             HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
             /* obtain data from I2C */
-            HAL_I2C_Master_Sequential_Receive_DMA(&hi2c1, SKYWRITER_I2C_ADR<<1, &i2c_buf[UART_HEADER_SIZE], I2C_HEADER_SIZE, I2C_FIRST_AND_NEXT_FRAME);
+            HAL_I2C_Master_Sequential_Receive_DMA(&hi2c1, SKYWRITER_I2C_ADR<<1, i2c_buf, I2C_HEADER_SIZE, I2C_FIRST_AND_NEXT_FRAME);
             i2c_state =WAITING_FOR_HEADER;
+            printf("IWFH"NL);
         }
         else if (i2c_state == HEADER_RECEIVED)
         {
-            uint16_t msg_size = i2c_buf[UART_HEADER_SIZE]-I2C_HEADER_SIZE;
-            HAL_I2C_Master_Sequential_Receive_DMA(&hi2c1, SKYWRITER_I2C_ADR<<1, &i2c_buf[UART_HEADER_SIZE+I2C_HEADER_SIZE], msg_size, I2C_LAST_FRAME);
+            uint16_t msg_size = i2c_buf[0]-I2C_HEADER_SIZE;
+            HAL_I2C_Master_Sequential_Receive_DMA(&hi2c1, SKYWRITER_I2C_ADR<<1, &i2c_buf[I2C_HEADER_SIZE], msg_size, I2C_LAST_FRAME);
             i2c_state =WAITING_FOR_PAYLOAD;
+            printf("IWFP"NL);
         }
         else if (i2c_state == PAYLOAD_RECEIVED)
         {
-            _write(NULL, i2c_buf, i2c_buf[UART_HEADER_SIZE]+2);
+            uint16_t trsfr_size = i2c_buf[0]+UART_HEADER_SIZE;
+            memcpy(&tx_buf[UART_HEADER_SIZE], i2c_buf, i2c_buf[0]);
+            //uint16_t trsfr_size = UART_HEADER_SIZE;
+            //_write(NULL, i2c_buf, trsfr_size);
             /*
             printf("Received I2C data (%d)"NL, timeout);
             for (uint8_t i=0;i<i2c_buf[0];i+=16)
@@ -351,28 +395,33 @@ int main(void)
             */
             HAL_GPIO_WritePin(DIAG_OUT_GPIO_Port, DIAG_OUT_Pin, GPIO_PIN_RESET);
             skywr_pin.Mode = GPIO_MODE_IT_FALLING;
-            skywr_pin.Pull = GPIO_NOPULL;
             HAL_GPIO_Init(GPIOB, &skywr_pin);
             HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
             i2c_state = IDLE;
+            printf("II"NL);
+            if (uart_state == UART_WAITING_FOR_I2C_ANSWER)
+            {
+                HAL_UART_Transmit_DMA(&huart1, tx_buf, trsfr_size);
+                uart_state = UART_WAITING_FOR_ANSWER_SENT;
+                printf("UWFAS"NL);
+            }
         }
-#endif
         handle_uart_rx(&huart1);
-        if ( (i2c_state == IDLE) && (uart_state == UART_WAITING_FOR_DISPATCHING))
+        if ( (uart_state == UART_WAITING_FOR_DISPATCHING) && (i2c_state == IDLE))
         {
             uint16_t msg_size = rx_buf[UART_HEADER_SIZE];
 
             HAL_I2C_Master_Transmit_DMA(&hi2c1, SKYWRITER_I2C_ADR<<1, &rx_buf[UART_HEADER_SIZE], msg_size);
-            i2c_state = WAITING_FRAME_SEND;
-            printf("i2cWFS"NL);
+            i2c_state = IDLE;
+            uart_state = UART_WAITING_FOR_I2C_ANSWER;
+            printf("IWFS %d"NL, msg_size);
        }
-  /* USER CODE END WHILE */
+    /* USER CODE END WHILE */
 
-  /* USER CODE BEGIN 3 */
+    /* USER CODE BEGIN 3 */
         ++timeout;
     }
   /* USER CODE END 3 */
-
 }
 
 /**
@@ -381,19 +430,16 @@ int main(void)
   */
 void SystemClock_Config(void)
 {
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
-  RCC_OscInitTypeDef RCC_OscInitStruct;
-  RCC_ClkInitTypeDef RCC_ClkInitStruct;
-  RCC_PeriphCLKInitTypeDef PeriphClkInit;
-
-    /**Configure LSE Drive Capability 
-    */
+  /**Configure LSE Drive Capability 
+  */
   HAL_PWR_EnableBkUpAccess();
-
   __HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_LOW);
-
-    /**Initializes the CPU, AHB and APB busses clocks 
-    */
+  /**Initializes the CPU, AHB and APB busses clocks 
+  */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSE|RCC_OSCILLATORTYPE_MSI;
   RCC_OscInitStruct.LSEState = RCC_LSE_ON;
   RCC_OscInitStruct.MSIState = RCC_MSI_ON;
@@ -408,11 +454,10 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
-    _Error_Handler(__FILE__, __LINE__);
+    Error_Handler();
   }
-
-    /**Initializes the CPU, AHB and APB busses clocks 
-    */
+  /**Initializes the CPU, AHB and APB busses clocks 
+  */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
@@ -422,9 +467,8 @@ void SystemClock_Config(void)
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK)
   {
-    _Error_Handler(__FILE__, __LINE__);
+    Error_Handler();
   }
-
   PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_RTC|RCC_PERIPHCLK_USART1
                               |RCC_PERIPHCLK_USART2|RCC_PERIPHCLK_I2C1
                               |RCC_PERIPHCLK_USB;
@@ -442,40 +486,37 @@ void SystemClock_Config(void)
   PeriphClkInit.PLLSAI1.PLLSAI1ClockOut = RCC_PLLSAI1_48M2CLK;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
-    _Error_Handler(__FILE__, __LINE__);
+    Error_Handler();
   }
-
-    /**Enables the Clock Security System 
-    */
+  /**Enables the Clock Security System 
+  */
   HAL_RCCEx_EnableLSECSS();
-
-    /**Configure the main internal regulator output voltage 
-    */
+  /**Configure the main internal regulator output voltage 
+  */
   if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1) != HAL_OK)
   {
-    _Error_Handler(__FILE__, __LINE__);
+    Error_Handler();
   }
-
-    /**Configure the Systick interrupt time 
-    */
-  HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
-
-    /**Configure the Systick 
-    */
-  HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
-
-    /**Enable MSI Auto calibration 
-    */
+  /**Enable MSI Auto calibration 
+  */
   HAL_RCCEx_EnableMSIPLLMode();
-
-  /* SysTick_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 }
 
-/* I2C1 init function */
+/**
+  * @brief I2C1 Initialization Function
+  * @param None
+  * @retval None
+  */
 static void MX_I2C1_Init(void)
 {
 
+  /* USER CODE BEGIN I2C1_Init 0 */
+
+  /* USER CODE END I2C1_Init 0 */
+
+  /* USER CODE BEGIN I2C1_Init 1 */
+
+  /* USER CODE END I2C1_Init 1 */
   hi2c1.Instance = I2C1;
   hi2c1.Init.Timing = 0x00702991;
   hi2c1.Init.OwnAddress1 = 0;
@@ -487,26 +528,31 @@ static void MX_I2C1_Init(void)
   hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
   if (HAL_I2C_Init(&hi2c1) != HAL_OK)
   {
-    _Error_Handler(__FILE__, __LINE__);
+    Error_Handler();
   }
-
-    /**Configure Analogue filter 
-    */
+  /**Configure Analogue filter 
+  */
   if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
   {
-    _Error_Handler(__FILE__, __LINE__);
+    Error_Handler();
   }
-
-    /**Configure Digital filter 
-    */
+  /**Configure Digital filter 
+  */
   if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK)
   {
-    _Error_Handler(__FILE__, __LINE__);
+    Error_Handler();
   }
+  /* USER CODE BEGIN I2C1_Init 2 */
+
+  /* USER CODE END I2C1_Init 2 */
 
 }
 
-/* RTC init function */
+/**
+  * @brief RTC Initialization Function
+  * @param None
+  * @retval None
+  */
 static void MX_RTC_Init(void)
 {
 
@@ -514,15 +560,14 @@ static void MX_RTC_Init(void)
 
   /* USER CODE END RTC_Init 0 */
 
-  RTC_TimeTypeDef sTime;
-  RTC_DateTypeDef sDate;
+  RTC_TimeTypeDef sTime = {0};
+  RTC_DateTypeDef sDate = {0};
 
   /* USER CODE BEGIN RTC_Init 1 */
 
   /* USER CODE END RTC_Init 1 */
-
-    /**Initialize RTC Only 
-    */
+  /**Initialize RTC Only 
+  */
   hrtc.Instance = RTC;
   hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
   hrtc.Init.AsynchPrediv = 127;
@@ -533,11 +578,15 @@ static void MX_RTC_Init(void)
   hrtc.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
   if (HAL_RTC_Init(&hrtc) != HAL_OK)
   {
-    _Error_Handler(__FILE__, __LINE__);
+    Error_Handler();
   }
 
-    /**Initialize RTC and set the Time and Date 
-    */
+  /* USER CODE BEGIN Check_RTC_BKUP */
+    
+  /* USER CODE END Check_RTC_BKUP */
+
+  /**Initialize RTC and set the Time and Date 
+  */
   sTime.Hours = 0x0;
   sTime.Minutes = 0x0;
   sTime.Seconds = 0x0;
@@ -545,9 +594,8 @@ static void MX_RTC_Init(void)
   sTime.StoreOperation = RTC_STOREOPERATION_RESET;
   if (HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BCD) != HAL_OK)
   {
-    _Error_Handler(__FILE__, __LINE__);
+    Error_Handler();
   }
-
   sDate.WeekDay = RTC_WEEKDAY_MONDAY;
   sDate.Month = RTC_MONTH_JANUARY;
   sDate.Date = 0x1;
@@ -555,17 +603,31 @@ static void MX_RTC_Init(void)
 
   if (HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BCD) != HAL_OK)
   {
-    _Error_Handler(__FILE__, __LINE__);
+    Error_Handler();
   }
+  /* USER CODE BEGIN RTC_Init 2 */
+
+  /* USER CODE END RTC_Init 2 */
 
 }
 
-/* USART1 init function */
+/**
+  * @brief USART1 Initialization Function
+  * @param None
+  * @retval None
+  */
 static void MX_USART1_UART_Init(void)
 {
 
+  /* USER CODE BEGIN USART1_Init 0 */
+
+  /* USER CODE END USART1_Init 0 */
+
+  /* USER CODE BEGIN USART1_Init 1 */
+
+  /* USER CODE END USART1_Init 1 */
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 115200;
+  huart1.Init.BaudRate = 9600;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
@@ -576,15 +638,29 @@ static void MX_USART1_UART_Init(void)
   huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
   if (HAL_UART_Init(&huart1) != HAL_OK)
   {
-    _Error_Handler(__FILE__, __LINE__);
+    Error_Handler();
   }
+  /* USER CODE BEGIN USART1_Init 2 */
+
+  /* USER CODE END USART1_Init 2 */
 
 }
 
-/* USART2 init function */
+/**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
 static void MX_USART2_UART_Init(void)
 {
 
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
   huart2.Init.BaudRate = 115200;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
@@ -597,8 +673,11 @@ static void MX_USART2_UART_Init(void)
   huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
   if (HAL_UART_Init(&huart2) != HAL_OK)
   {
-    _Error_Handler(__FILE__, __LINE__);
+    Error_Handler();
   }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
 
 }
 
@@ -633,19 +712,14 @@ static void MX_DMA_Init(void)
 
 }
 
-/** Configure pins as 
-        * Analog 
-        * Input 
-        * Output
-        * EVENT_OUT
-        * EXTI
-        * Free pins are configured automatically as Analog (this feature is enabled through 
-        * the Code Generation settings)
-*/
+/**
+  * @brief GPIO Initialization Function
+  * @param None
+  * @retval None
+  */
 static void MX_GPIO_Init(void)
 {
-
-  GPIO_InitTypeDef GPIO_InitStruct;
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
@@ -711,11 +785,9 @@ static void MX_GPIO_Init(void)
 
 /**
   * @brief  This function is executed in case of error occurrence.
-  * @param  file: The file name as string.
-  * @param  line: The line in file as a number.
   * @retval None
   */
-void _Error_Handler(char *file, int line)
+void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
@@ -733,7 +805,7 @@ void _Error_Handler(char *file, int line)
   * @param  line: assert_param error line source number
   * @retval None
   */
-void assert_failed(uint8_t* file, uint32_t line)
+void assert_failed(char *file, uint32_t line)
 { 
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
@@ -741,13 +813,5 @@ void assert_failed(uint8_t* file, uint32_t line)
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
-
-/**
-  * @}
-  */
-
-/**
-  * @}
-  */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
