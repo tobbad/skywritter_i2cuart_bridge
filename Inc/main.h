@@ -68,6 +68,11 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
+typedef struct state_t_
+{
+    uint8_t current_state;
+    uint8_t next_state;
+} state_t;
 
 /* USER CODE END ET */
 
@@ -104,14 +109,6 @@ void Error_Handler(void);
 #define BUF_SIZE 256
 #define I2C_HEADER_SIZE 4
 #define UART_HEADER_SIZE 2
-typedef enum
-{
-    A0 = 0,
-    VREF,
-    TEMPERATURE,
-    VBAT,
-    ANALOG_IN_CNT
-} ADC_CH;
 
 /* USER CODE END Private defines */
 

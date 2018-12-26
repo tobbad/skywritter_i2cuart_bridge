@@ -91,13 +91,14 @@ DMA_HandleTypeDef hdma_usart2_tx;
 /* Private variables ---------------------------------------------------------*/
 typedef enum
 {
-    IDLE,
+    I2C_IDLE,
     I2C_DATA_READY,
-    WAITING_FOR_HEADER,
-    HEADER_RECEIVED,
-    WAITING_FOR_PAYLOAD,
-    PAYLOAD_RECEIVED,
-    WAITING_FRAME_SEND,
+    I2C_WAITING_FOR_HEADER,
+    I2C_HEADER_RECEIVED,
+    I2C_WAITING_FOR_PAYLOAD,
+    I2C_PAYLOAD_RECEIVED,
+    I2C_WAITING_FRAME_SEND,
+    I2C_ERROR,
 } I2C_RX_STATE;
 
 typedef enum
@@ -124,7 +125,7 @@ typedef struct i2c_heder_t_
 } i2c_heder_t;
 
 static const uint8_t UART_HEADER[]={0xFE, 0xFF};
-static const uint32_t RX_TIMEOUT = 1000;
+static const uint32_t TIMEOUT_MS = 100;
 static const uint16_t I2C_MSG_SIZE = BUF_SIZE;
 
 
@@ -147,7 +148,7 @@ static sio_t log_io = {
 #endif
     .bytes_in_buffer = {0,0},
 };
-static I2C_RX_STATE i2c_state = IDLE;
+static I2C_RX_STATE i2c_state = I2C_IDLE;
 #if 0
 // Size  Flags  Seq   ID      Command        Reserved      Argument 0                     Argument 1
 // Command, Argument 1 and Argument 2 are sent LSByte first, so 1 = 0x01 0x00 etc
@@ -171,10 +172,10 @@ static UART_RX_STATE uart_state = UART_IDLE;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
-static void MX_I2C1_Init(void);
 static void MX_RTC_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_I2C1_Init(void);
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
 
@@ -187,7 +188,8 @@ static void MX_USART2_UART_Init(void);
  */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-    if ( (GPIO_Pin == Skywriter_TRFR_Pin) && (i2c_state == IDLE))
+    if ( (GPIO_Pin == Skywriter_TRFR_Pin) &&
+         ( (i2c_state == I2C_IDLE) || (i2c_state == UART_WAITING_FOR_I2C_ANSWER)))
     {
         HAL_GPIO_WritePin(DIAG_OUT_GPIO_Port, DIAG_OUT_Pin, GPIO_PIN_SET);
         i2c_state = I2C_DATA_READY;
@@ -201,23 +203,48 @@ void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *I2cHandle)
 
 void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *I2cHandle)
 {
-    if ((I2cHandle == &hi2c1) && (i2c_state == WAITING_FOR_HEADER))
+    if ((I2cHandle == &hi2c1) && (i2c_state == I2C_WAITING_FOR_HEADER))
     {
-        i2c_state = HEADER_RECEIVED;
+        i2c_state = I2C_HEADER_RECEIVED;
     }
-    if ((I2cHandle == &hi2c1) && (i2c_state == WAITING_FOR_PAYLOAD))
+    if ((I2cHandle == &hi2c1) && (i2c_state == I2C_WAITING_FOR_PAYLOAD))
     {
-        i2c_state = PAYLOAD_RECEIVED;
+        i2c_state = I2C_PAYLOAD_RECEIVED;
     }
 }
 
 void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *I2cHandle)
 {
-    if ((I2cHandle == &hi2c1) && (i2c_state == WAITING_FRAME_SEND))
+    if ((I2cHandle == &hi2c1) && (i2c_state == I2C_WAITING_FRAME_SEND))
     {
         uart_state = UART_MESSAGE_DISPATCHED;
-        i2c_state = IDLE;
+        i2c_state = I2C_IDLE;
     }
+}
+
+void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *I2cHandle)
+{
+    if (I2cHandle == &hi2c1)
+    {
+        i2c_state = I2C_ERROR;
+    }
+}
+
+void i2c_assert_trfr()
+{
+    skywr_pin.Mode = GPIO_MODE_OUTPUT_PP;
+    HAL_GPIO_WritePin(GPIOB, Skywriter_TRFR_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_Init(GPIOB, &skywr_pin);
+    //printf("I2C data ready"NL);
+    HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+}
+
+void i2c_release_trfr()
+{
+    HAL_GPIO_WritePin(DIAG_OUT_GPIO_Port, DIAG_OUT_Pin, GPIO_PIN_RESET);
+    skywr_pin.Mode = GPIO_MODE_IT_FALLING;
+    HAL_GPIO_Init(GPIOB, &skywr_pin);
+    HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
 }
 /*
  * Handle of UART RX to the host
@@ -287,6 +314,7 @@ void handle_uart_rx(UART_HandleTypeDef *uart)
         else if (uart_state == UART_MESSAGE_DISPATCHED)
         {
             uart_state = UART_IDLE;
+            printf("II"NL);
             printf("UI"NL);
         }
     }
@@ -302,7 +330,7 @@ void handle_uart_rx(UART_HandleTypeDef *uart)
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-    uint16_t timeout = 0;
+    uint32_t i2c_transfer_start = 0;
     uint32_t ltick = HAL_GetTick();
   /* USER CODE END 1 */
 
@@ -325,11 +353,11 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
-  MX_I2C1_Init();
   MX_RTC_Init();
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
   MX_USB_DEVICE_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
     tx_buf[0] = UART_HEADER[0];
     tx_buf[1] = UART_HEADER[1];
@@ -353,25 +381,22 @@ int main(void)
         uint32_t tick = HAL_GetTick();
         if (i2c_state == I2C_DATA_READY)
         {
-            skywr_pin.Mode = GPIO_MODE_OUTPUT_PP;
-            HAL_GPIO_WritePin(GPIOB, Skywriter_TRFR_Pin, GPIO_PIN_RESET);
-            HAL_GPIO_Init(GPIOB, &skywr_pin);
-            timeout = 0;
+            i2c_assert_trfr();
+            i2c_transfer_start = tick;
             //printf("I2C data ready"NL);
-            HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
             /* obtain data from I2C */
             HAL_I2C_Master_Sequential_Receive_DMA(&hi2c1, SKYWRITER_I2C_ADR<<1, i2c_buf, I2C_HEADER_SIZE, I2C_FIRST_AND_NEXT_FRAME);
-            i2c_state =WAITING_FOR_HEADER;
+            i2c_state =I2C_WAITING_FOR_HEADER;
             printf("IWFH"NL);
         }
-        else if (i2c_state == HEADER_RECEIVED)
+        else if (i2c_state == I2C_HEADER_RECEIVED)
         {
             uint16_t msg_size = i2c_buf[0]-I2C_HEADER_SIZE;
             HAL_I2C_Master_Sequential_Receive_DMA(&hi2c1, SKYWRITER_I2C_ADR<<1, &i2c_buf[I2C_HEADER_SIZE], msg_size, I2C_LAST_FRAME);
-            i2c_state =WAITING_FOR_PAYLOAD;
+            i2c_state =I2C_WAITING_FOR_PAYLOAD;
             printf("IWFP"NL);
         }
-        else if (i2c_state == PAYLOAD_RECEIVED)
+        else if (i2c_state == I2C_PAYLOAD_RECEIVED)
         {
             uint16_t trsfr_size = i2c_buf[0]+UART_HEADER_SIZE;
             memcpy(&tx_buf[UART_HEADER_SIZE], i2c_buf, i2c_buf[0]);
@@ -393,11 +418,8 @@ int main(void)
                 printf(NL);
             }
             */
-            HAL_GPIO_WritePin(DIAG_OUT_GPIO_Port, DIAG_OUT_Pin, GPIO_PIN_RESET);
-            skywr_pin.Mode = GPIO_MODE_IT_FALLING;
-            HAL_GPIO_Init(GPIOB, &skywr_pin);
-            HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
-            i2c_state = IDLE;
+            i2c_release_trfr();
+            i2c_state = I2C_IDLE;
             printf("II"NL);
             if (uart_state == UART_WAITING_FOR_I2C_ANSWER)
             {
@@ -406,20 +428,32 @@ int main(void)
                 printf("UWFAS"NL);
             }
         }
+        if (i2c_state == I2C_ERROR)
+        {
+            printf("IE"NL);
+            i2c_release_trfr();
+            i2c_state = I2C_IDLE;
+        }
+        /*
+        if ( (tick - i2c_transfer_start) > TIMEOUT_MS )
+        {
+            i2c_state = IDLE;
+            printf("II"NL);
+        }
+        */
         handle_uart_rx(&huart1);
-        if ( (uart_state == UART_WAITING_FOR_DISPATCHING) && (i2c_state == IDLE))
+        if ( (uart_state == UART_WAITING_FOR_DISPATCHING) && (i2c_state == I2C_IDLE))
         {
             uint16_t msg_size = rx_buf[UART_HEADER_SIZE];
 
             HAL_I2C_Master_Transmit_DMA(&hi2c1, SKYWRITER_I2C_ADR<<1, &rx_buf[UART_HEADER_SIZE], msg_size);
-            i2c_state = IDLE;
+            i2c_state = I2C_WAITING_FRAME_SEND;
             uart_state = UART_WAITING_FOR_I2C_ANSWER;
             printf("IWFS %d"NL, msg_size);
        }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-        ++timeout;
     }
   /* USER CODE END 3 */
 }
@@ -518,7 +552,7 @@ static void MX_I2C1_Init(void)
 
   /* USER CODE END I2C1_Init 1 */
   hi2c1.Instance = I2C1;
-  hi2c1.Init.Timing = 0x00702991;
+  hi2c1.Init.Timing = 0x10909CEC;
   hi2c1.Init.OwnAddress1 = 0;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -687,8 +721,8 @@ static void MX_USART2_UART_Init(void)
 static void MX_DMA_Init(void) 
 {
   /* DMA controller clock enable */
-  __HAL_RCC_DMA2_CLK_ENABLE();
   __HAL_RCC_DMA1_CLK_ENABLE();
+  __HAL_RCC_DMA2_CLK_ENABLE();
 
   /* DMA interrupt init */
   /* DMA1_Channel4_IRQn interrupt configuration */

@@ -15,6 +15,8 @@
     <DEPENDENCIES>
       <COMP relation="OwnedBehavior">
         <COMPID name="HostCom" mc="Standard.StateMachine" uid="4a0160bd-05c8-4767-9af3-25f4364e7c25"/>
+        <COMPID name="GesticCom" mc="Standard.StateMachine" uid="e7513b42-a20d-4b64-8b03-3f44f2bfc80f"/>
+        <COMPID name="Active" mc="Standard.StateMachine" uid="9f79cfb2-55ac-4aff-83d6-1f5f88946e76"/>
       </COMP>
       <COMP relation="OwnedElement">
         <COMPID name="HostCom" mc="Standard.Class" uid="e32a0555-6f96-4a1d-aecb-64d1b7ae4bb7"/>
